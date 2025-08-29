@@ -1,43 +1,55 @@
 # Fake Banking APK Detection System
 
-An automated system to detect and classify fake banking applications using static and dynamic analysis techniques.
+A comprehensive system for detecting and analyzing fake banking APKs using machine learning and static analysis techniques.
 
-## Features
-
-- **Static Analysis**: Extract APK permissions, signatures, certificates, and metadata
-- **Dynamic Analysis**: Monitor network behavior and runtime characteristics
-- **Machine Learning**: Classification model to distinguish genuine vs fake banking APKs
-- **Web Interface**: Upload and analyze APKs through a user-friendly interface
-- **Reporting System**: Flag suspicious APKs with detailed analysis reports
-
-## Architecture
+## 🏗️ Clean Project Structure
 
 ```
-├── src/
-│   ├── analysis/          # APK analysis modules
-│   ├── ml/               # Machine learning components
-│   ├── web/              # Web interface
-│   └── utils/            # Utility functions
-├── data/                 # Sample datasets
-├── models/               # Trained ML models
-└── reports/              # Analysis reports
+fake-apk-detection/
+├── backend/                    # Flask API Backend
+│   ├── app.py                 # Main Flask application
+│   ├── requirements.txt       # Backend dependencies
+│   └── Dockerfile            # Backend container
+├── frontend/                  # Modern Web Frontend
+│   ├── index.html            # Main HTML page
+│   ├── app.js                # Frontend JavaScript
+│   ├── styles.css            # Custom styles
+│   ├── package.json          # Frontend dependencies
+│   ├── Dockerfile            # Frontend container
+│   └── nginx.conf            # Nginx configuration
+├── docker-compose.yml        # Multi-container setup
+├── .gitignore               # Git ignore rules
+└── README.md                # Documentation
 ```
 
-## Installation
+## 🚀 Quick Start
 
+### Option 1: Docker (Recommended)
 ```bash
+# Start both frontend and backend
+docker-compose up -d
+
+# Access the application
+# Frontend: http://localhost:3000
+# Backend API: http://localhost:5000
+```
+
+### Option 2: Manual Setup
+
+#### Backend Setup
+```bash
+cd backend
 pip install -r requirements.txt
+python app.py
 ```
 
-## Usage
-
-### Command Line
+#### Frontend Setup
 ```bash
-python src/main.py --apk path/to/app.apk
-```
+cd frontend
+# Serve with Python (simple)
+python -m http.server 3000
 
-### Web Interface
-```bash
+# Or use any web server
 python src/web/app.py
 ```
 
