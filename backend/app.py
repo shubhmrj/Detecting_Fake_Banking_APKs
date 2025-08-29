@@ -13,6 +13,7 @@ import zipfile
 from pathlib import Path
 import sqlite3
 from datetime import datetime
+from apk_analyzer import EnhancedAPKAnalyzer
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend communication
@@ -51,30 +52,8 @@ def init_database():
 
 init_database()
 
-class SimpleAPKAnalyzer:
-    """Simplified APK analyzer without heavy dependencies"""
-    
-    def __init__(self):
-        self.suspicious_permissions = {
-            'android.permission.SEND_SMS': 'high',
-            'android.permission.READ_SMS': 'high',
-            'android.permission.RECEIVE_SMS': 'high',
-            'android.permission.CALL_PHONE': 'medium',
-            'android.permission.READ_PHONE_STATE': 'medium',
-            'android.permission.SYSTEM_ALERT_WINDOW': 'high',
-            'android.permission.DEVICE_ADMIN': 'high',
-            'android.permission.GET_ACCOUNTS': 'high',
-            'android.permission.ACCESS_FINE_LOCATION': 'medium',
-            'android.permission.CAMERA': 'medium',
-            'android.permission.RECORD_AUDIO': 'medium'
-        }
-        
-        self.banking_keywords = [
-            'bank', 'banking', 'finance', 'payment', 'wallet', 'money',
-            'credit', 'debit', 'account', 'transaction', 'transfer'
-        ]
-    
-    def analyze_apk(self, apk_path):
+# Initialize enhanced analyzer
+analyzer = EnhancedAPKAnalyzer()
         """Analyze APK file and return results"""
         try:
             # Calculate file hash
