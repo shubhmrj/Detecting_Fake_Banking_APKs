@@ -10,7 +10,7 @@ import tempfile
 import json
 import sqlite3
 from datetime import datetime
-from ml_integration import ml_analyzer
+from ml_trainer import APKMLTrainer
 from dynamic_analyzer import DynamicAPKAnalyzer, SimplifiedDynamicAnalyzer
 from sandbox_manager import SandboxManager
 from behavior_monitor import BehaviorMonitor
@@ -52,7 +52,17 @@ def init_database():
 
 init_database()
 
-# ML analyzer is imported and ready to use
+# Initialize ML trainer
+ml_trainer = APKMLTrainer()
+try:
+    ml_trainer.load_models()
+    print("✅ ML models loaded successfully")
+except:
+    print("⚠️  Training new ML models...")
+    data = ml_trainer.generate_synthetic_training_data(1000)
+    ml_trainer.train_models(data)
+    ml_trainer.save_models()
+    print("✅ New ML models trained and saved")
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -83,12 +93,15 @@ def analyze_apk():
         file.save(temp_path)
         
         try:
-            analyzer = EnhancedAPKAnalyzer()
-            dynamic_analyzer = SimplifiedDynamicAnalyzer()
-            sandbox_manager = SandboxManager()
-            behavior_monitor = BehaviorMonitor()
-            # Perform comprehensive analysis with ML and dynamic components
-            analysis_result = ml_analyzer.analyze_apk_with_ml(temp_path, use_ml=True)
+            from apk_analyzer import APKAnalyzer
+            analyzer = APKAnalyzer()
+            
+            # Perform static analysis
+            analysis_result = analyzer.analyze_apk(temp_path)
+            
+            # Add ML prediction
+            ml_result = ml_trainer.predict(analysis_result)
+            analysis_result['ml_prediction'] = ml_result
             
             if 'error' in analysis_result:
                 return jsonify({
@@ -97,9 +110,13 @@ def analyze_apk():
                     'error': analysis_result['error']
                 }), 500
             
-            # Add dynamic analysis (simulated for environments without Android SDK)
-            dynamic_result = dynamic_analyzer.simulate_dynamic_analysis(analysis_result)
-            analysis_result['dynamic_analysis'] = dynamic_result
+            # Add simulated dynamic analysis
+            analysis_result['dynamic_analysis'] = {
+                'status': 'simulated',
+                'network_connections': [],
+                'file_operations': [],
+                'risk_score': analysis_result.get('security_analysis', {}).get('risk_score', 0)
+            }
             
             # Store comprehensive analysis in database
             store_enhanced_analysis_result(file.filename, analysis_result)
@@ -147,8 +164,8 @@ def analyze_apk():
                     'suspicious_urls': analysis_result['urls']['suspicious_urls'],
                     'ip_addresses': analysis_result['urls']['ip_addresses'],
                     
-                    # ML analysis (if available)
-                    'ml_analysis': analysis_result.get('ml_analysis', {}),
+                    # ML prediction results
+                    'ml_prediction': analysis_result.get('ml_prediction', {}),
                     'is_suspicious': analysis_result['security_analysis']['is_suspicious'],
                     'security_analysis': analysis_result['security_analysis'],
                     'ml_analysis': analysis_result.get('ml_analysis', {}),
