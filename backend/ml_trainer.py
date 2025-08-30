@@ -9,7 +9,12 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 from sklearn.preprocessing import StandardScaler, LabelEncoder
-import xgboost as xgb
+try:
+    import xgboost as xgb
+    HAS_XGBOOST = True
+except ImportError:
+    HAS_XGBOOST = False
+    print("Warning: XGBoost not available, using only scikit-learn models")
 import joblib
 import json
 import os
@@ -336,11 +341,14 @@ class APKMLTrainer:
         rf_model.fit(X_train, y_train)
         self.models['random_forest'] = rf_model
         
-        # Train XGBoost
-        print("Training XGBoost...")
-        xgb_model = xgb.XGBClassifier(n_estimators=100, random_state=42, max_depth=6)
-        xgb_model.fit(X_train, y_train)
-        self.models['xgboost'] = xgb_model
+        # Train XGBoost (if available)
+        if HAS_XGBOOST:
+            print("Training XGBoost...")
+            xgb_model = xgb.XGBClassifier(n_estimators=100, random_state=42, max_depth=6)
+            xgb_model.fit(X_train, y_train)
+            self.models['xgboost'] = xgb_model
+        else:
+            print("Skipping XGBoost (not available)")
         
         # Train Gradient Boosting
         print("Training Gradient Boosting...")
