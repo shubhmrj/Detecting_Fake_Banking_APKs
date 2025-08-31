@@ -1,6 +1,6 @@
 # 🏦 MP Police Banking APK Detection System - Complete Architecture
 
-## 🎯 **How Your Entire System Works**
+## 🎯 **How The Entire System Works**
 
 ### **1. Data Flow Overview**
 ```
@@ -43,6 +43,8 @@ Malware Datasets → APK Analysis → Feature Extraction → Training Data
 ---
 
 ## 🤖 **Machine Learning Pipeline**
+
+![Screenshot](assets/FlowChart7.gif)
 
 ### **Feature Extraction (85+ Features)**
 ```python
