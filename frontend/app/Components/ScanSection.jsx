@@ -6,6 +6,8 @@ const ScanSection = () => {
   const [activeTab, setActiveTab] = useState('file'); 
   const [dragActive, setDragActive] = useState(false);
   const [urlInput, setUrlInput] = useState('');
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -21,6 +23,46 @@ const ScanSection = () => {
     setActiveTab(tab);
     setDragActive(false);
     setUrlInput('');
+  };
+
+  const handleFileUpload = async (file) => {
+    if (!file || !file.name.endsWith('.apk')) {
+      alert('Please select a valid APK file');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/analyze', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        setAnalysisResult(result);
+      } else {
+        setAnalysisResult({ 
+          status: 'error', 
+          error: result.error || 'Analysis failed',
+          filename: file.name 
+        });
+      }
+    } catch (error) {
+      setAnalysisResult({ 
+        status: 'error', 
+        error: 'Failed to connect to backend API. Make sure the backend server is running on http://localhost:5000',
+        filename: file.name 
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleUrlScan = () => {
@@ -85,7 +127,10 @@ const ScanSection = () => {
             onDrop={(e) => {
               e.preventDefault();
               setDragActive(false);
-              // Handle file drop logic here
+              const files = e.dataTransfer.files;
+              if (files.length > 0) {
+                handleFileUpload(files[0]);
+              }
             }}
           >
             <div className="flex flex-col items-center space-y-4">
@@ -102,10 +147,24 @@ const ScanSection = () => {
               <p className="text-sm text-gray-500">
                 Drag and drop an APK file or click to browse
               </p>
-              <button className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-cyan-600 transition-all duration-200 shadow-lg hover:shadow-purple-500/25">
+              <input
+                type="file"
+                accept=".apk"
+                onChange={(e) => {
+                  if (e.target.files.length > 0) {
+                    handleFileUpload(e.target.files[0]);
+                  }
+                }}
+                className="hidden"
+                id="file-upload"
+              />
+              <label
+                htmlFor="file-upload"
+                className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-purple-500 to-cyan-500 text-white rounded-lg font-medium hover:from-purple-600 hover:to-cyan-600 transition-all duration-200 shadow-lg hover:shadow-purple-500/25 cursor-pointer"
+              >
                 <Plus className="w-4 h-4" />
                 <span>Add File</span>
-              </button>
+              </label>
             </div>
           </div>
         )}
@@ -145,6 +204,73 @@ const ScanSection = () => {
               <Search className="w-4 h-4" />
               <span>Enter a complete URL (e.g., https://example.com/app.apk)</span>
             </div>
+          </div>
+        )}
+
+        {/* Analysis Results */}
+        {isAnalyzing && (
+          <div className="mt-8 p-6 bg-blue-900/20 border border-blue-500/30 rounded-xl">
+            <div className="flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400"></div>
+              <p className="text-blue-400">Analyzing APK file...</p>
+            </div>
+          </div>
+        )}
+
+        {analysisResult && (
+          <div className="mt-8 p-6 bg-gray-900/50 border border-gray-600 rounded-xl">
+            <h3 className="text-xl font-bold text-white mb-4">Analysis Results</h3>
+            
+            {analysisResult.status === 'error' ? (
+              <div className="p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+                <p className="text-red-400 font-medium">Error: {analysisResult.error}</p>
+                <p className="text-gray-400 text-sm mt-2">File: {analysisResult.filename}</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-gray-800/50 rounded-lg">
+                    <h4 className="font-medium text-white mb-2">App Information</h4>
+                    <p className="text-sm text-gray-300">Package: {analysisResult.analysis?.package_name}</p>
+                    <p className="text-sm text-gray-300">App Name: {analysisResult.analysis?.app_name}</p>
+                    <p className="text-sm text-gray-300">Version: {analysisResult.analysis?.version_name}</p>
+                  </div>
+                  
+                  <div className="p-4 bg-gray-800/50 rounded-lg">
+                    <h4 className="font-medium text-white mb-2">Security Status</h4>
+                    <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                      analysisResult.analysis?.is_suspicious 
+                        ? 'bg-red-900/30 text-red-400 border border-red-500/30' 
+                        : 'bg-green-900/30 text-green-400 border border-green-500/30'
+                    }`}>
+                      {analysisResult.analysis?.is_suspicious ? 'SUSPICIOUS' : 'LEGITIMATE'}
+                    </div>
+                    <p className="text-sm text-gray-300 mt-2">
+                      Risk Score: {analysisResult.analysis?.security_analysis?.risk_score || 0}/100
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-gray-800/50 rounded-lg">
+                  <h4 className="font-medium text-white mb-2">Permissions Analysis</h4>
+                  <p className="text-sm text-gray-300">Total Permissions: {analysisResult.analysis?.permission_count || 0}</p>
+                  <p className="text-sm text-gray-300">Suspicious Permissions: {analysisResult.analysis?.suspicious_permissions?.length || 0}</p>
+                  <p className="text-sm text-gray-300">Critical Permissions: {analysisResult.analysis?.critical_permissions?.length || 0}</p>
+                </div>
+
+                {analysisResult.analysis?.ml_prediction && (
+                  <div className="p-4 bg-gray-800/50 rounded-lg">
+                    <h4 className="font-medium text-white mb-2">ML Analysis</h4>
+                    <p className="text-sm text-gray-300">
+                      Prediction: {analysisResult.analysis.ml_prediction.prediction || 'N/A'}
+                    </p>
+                    <p className="text-sm text-gray-300">
+                      Confidence: {Math.round((analysisResult.analysis.ml_prediction.confidence || 0) * 100)}%
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

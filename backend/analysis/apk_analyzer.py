@@ -14,8 +14,10 @@ try:
     from androguard.core.bytecodes.apk import APK
     from androguard.core.bytecodes.dvm import DalvikVMFormat
     from androguard.core.analysis.analysis import Analysis
+    print("[OK] androguard imported successfully in APKAnalyzer")
 except ImportError:
     print("Warning: androguard not installed. Install with: pip install androguard")
+    APK = None
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend

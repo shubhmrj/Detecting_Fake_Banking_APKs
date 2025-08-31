@@ -19,7 +19,7 @@ import joblib
 import json
 import os
 from datetime import datetime
-from apk_analyzer import EnhancedAPKAnalyzer
+from analysis.apk_analyzer import APKAnalyzer
 
 class APKMLTrainer:
     """Machine Learning trainer for APK classification"""

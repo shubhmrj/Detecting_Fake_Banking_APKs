@@ -9,11 +9,12 @@ import os
 import tempfile
 import json
 import sqlite3
+import zipfile
 from datetime import datetime
 from ml_trainer import APKMLTrainer
-from dynamic_analyzer import DynamicAPKAnalyzer, SimplifiedDynamicAnalyzer
-from sandbox_manager import SandboxManager
-from behavior_monitor import BehaviorMonitor
+from analysis.dynamic_analyzer import DynamicAnalyzer
+from train_banking_model import BankingAPKTrainer
+from sentinel_banking_detector_windows import SentinelBankingDetector
 
 app = Flask(__name__)
 CORS(app)
@@ -56,13 +57,18 @@ init_database()
 ml_trainer = APKMLTrainer()
 try:
     ml_trainer.load_models()
-    print("✅ ML models loaded successfully")
+    print("[OK] ML models loaded successfully")
 except:
-    print("⚠️  Training new ML models...")
+    print("[INFO] Training new ML models...")
     data = ml_trainer.generate_synthetic_training_data(1000)
     ml_trainer.train_models(data)
     ml_trainer.save_models()
-    print("✅ New ML models trained and saved")
+    print("[OK] New ML models trained and saved")
+
+# Initialize Banking APK Trainer and Sentinel Detector
+banking_trainer = BankingAPKTrainer()
+sentinel_detector = SentinelBankingDetector()
+print("[OK] Banking detection system initialized")
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -93,21 +99,25 @@ def analyze_apk():
         file.save(temp_path)
         
         try:
-            from apk_analyzer import APKAnalyzer
+            from analysis.apk_analyzer import APKAnalyzer
             analyzer = APKAnalyzer()
             
             # Perform static analysis
-            analysis_result = analyzer.analyze_apk(temp_path)
+            analysis_result = analyzer.analyze(temp_path)
             
-            # Add ML prediction
-            ml_result = ml_trainer.predict(analysis_result)
-            analysis_result['ml_prediction'] = ml_result
+            # Add ML prediction (skip for now as it expects different format)
+            # ml_result = ml_trainer.predict(analysis_result)
+            # analysis_result['ml_prediction'] = ml_result
             
-            if 'error' in analysis_result:
+            # Add banking anomaly detection
+            banking_result = sentinel_detector.detect_banking_threat(temp_path)
+            analysis_result.banking_detection = banking_result
+            
+            if not analysis_result:
                 return jsonify({
                     'status': 'error',
                     'filename': file.filename,
-                    'error': analysis_result['error']
+                    'error': 'APK analysis failed'
                 }), 500
             
             # Add simulated dynamic analysis
@@ -121,56 +131,44 @@ def analyze_apk():
             # Store comprehensive analysis in database
             store_enhanced_analysis_result(file.filename, analysis_result)
             
-            # Build response with enhanced data
+            # Build response with enhanced data using APKAnalysisResult structure
             response_data = {
                 'status': 'success',
                 'filename': file.filename,
                 'analysis': {
-                    'file_hash': analysis_result['file_hash'],
-                    'package_name': analysis_result['metadata']['package_name'],
-                    'app_name': analysis_result['metadata']['app_name'],
-                    'version_name': analysis_result['metadata']['version_name'],
-                    'version_code': analysis_result['metadata']['version_code'],
-                    'min_sdk': analysis_result['metadata']['min_sdk'],
-                    'target_sdk': analysis_result['metadata']['target_sdk'],
-                    'file_size': analysis_result['metadata']['file_size'],
-                    'is_signed': analysis_result['metadata']['is_signed'],
-                    'is_debuggable': analysis_result['metadata']['is_debuggable'],
-                    'uses_native_code': analysis_result['metadata']['uses_native_code'],
+                    'package_name': getattr(analysis_result, 'package_name', 'unknown'),
+                    'app_name': getattr(analysis_result, 'app_name', 'unknown'),
+                    'version_name': getattr(analysis_result, 'version_name', 'unknown'),
+                    'version_code': getattr(analysis_result, 'version_code', 0),
+                    'file_size': os.path.getsize(temp_path),
                     
                     # Permission analysis
-                    'permissions': analysis_result['permissions']['permissions'],
-                    'suspicious_permissions': analysis_result['permissions']['suspicious_permissions'],
-                    'permission_count': analysis_result['permissions']['total_count'],
-                    'critical_permissions': analysis_result['permissions']['permission_categories']['critical'],
-                    'high_risk_permissions': analysis_result['permissions']['permission_categories']['high'],
+                    'permissions': getattr(analysis_result, 'permissions', []),
+                    'suspicious_permissions': getattr(analysis_result, 'suspicious_permissions', []),
+                    'permission_count': len(getattr(analysis_result, 'permissions', [])),
                     
                     # Certificate analysis
-                    'certificates': analysis_result['certificates']['certificates'],
-                    'certificate_count': analysis_result['certificates']['certificate_count'],
-                    'has_valid_certificates': analysis_result['certificates']['has_valid_certificates'],
-                    'has_self_signed': analysis_result['certificates']['has_self_signed'],
+                    'certificates': getattr(analysis_result, 'certificates', []),
+                    'certificate_count': len(getattr(analysis_result, 'certificates', [])),
+                    'has_valid_certificates': len(getattr(analysis_result, 'certificates', [])) > 0,
                     
-                    # API and URL analysis
-                    'suspicious_apis': analysis_result['api_calls']['suspicious_apis'],
-                    'crypto_apis': analysis_result['api_calls']['crypto_apis'],
-                    'network_apis': analysis_result['api_calls']['network_apis'],
-                    'telephony_apis': analysis_result['api_calls']['telephony_apis'],
-                    'reflection_apis': analysis_result['api_calls']['reflection_apis'],
-                    'total_methods': analysis_result['api_calls']['total_methods'],
+                    # Component analysis
+                    'activities': getattr(analysis_result, 'activities', []),
+                    'services': getattr(analysis_result, 'services', []),
+                    'receivers': getattr(analysis_result, 'receivers', []),
                     
-                    'http_urls': analysis_result['urls']['http_urls'],
-                    'https_urls': analysis_result['urls']['https_urls'],
-                    'suspicious_urls': analysis_result['urls']['suspicious_urls'],
-                    'ip_addresses': analysis_result['urls']['ip_addresses'],
+                    # Risk analysis
+                    'risk_score': getattr(analysis_result, 'risk_score', 0),
+                    'is_suspicious': getattr(analysis_result, 'risk_score', 0) > 50,
                     
-                    # ML prediction results
-                    'ml_prediction': analysis_result.get('ml_prediction', {}),
-                    'is_suspicious': analysis_result['security_analysis']['is_suspicious'],
-                    'security_analysis': analysis_result['security_analysis'],
-                    'ml_analysis': analysis_result.get('ml_analysis', {}),
-                    'dynamic_analysis': analysis_result.get('dynamic_analysis', {}),
-                    'recommendations': analysis_result['security_analysis'].get('recommendations', [])
+                    # Banking anomaly detection
+                    'banking_detection': getattr(analysis_result, 'banking_detection', {}),
+                    
+                    # Features for ML
+                    'features': getattr(analysis_result, 'features', {}),
+                    
+                    # File hashes
+                    'file_hashes': getattr(analysis_result, 'file_hashes', {})
                 }
             }
             
@@ -410,8 +408,170 @@ def get_risk_level(risk_score):
     else:
         return 'MINIMAL'
 
+@app.route('/api/train/legitimate', methods=['POST'])
+def train_legitimate():
+    """Train model with legitimate banking APK"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not file.filename.lower().endswith('.apk'):
+            return jsonify({'error': 'File must be an APK'}), 400
+        
+        # Save uploaded file to legitimate training directory
+        legitimate_dir = os.path.join('mp_police_datasets', 'legitimate', 'banking')
+        os.makedirs(legitimate_dir, exist_ok=True)
+        
+        file_path = os.path.join(legitimate_dir, file.filename)
+        file.save(file_path)
+        
+        # Validate APK file
+        if not zipfile.is_zipfile(file_path):
+            os.remove(file_path)  # Clean up invalid file
+            return jsonify({'error': 'Invalid APK file format'}), 400
+        
+        # Retrain the banking model
+        success = banking_trainer.train_anomaly_detection_model()
+        
+        if success:
+            banking_trainer.save_model()
+            # Reload the sentinel detector with new model
+            global sentinel_detector
+            sentinel_detector = SentinelBankingDetector()
+            
+            return jsonify({
+                'status': 'success',
+                'message': f'Legitimate APK {file.filename} added to training set',
+                'model_retrained': True
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Model retraining failed'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({'error': f'Training failed: {str(e)}'}), 500
+
+@app.route('/api/train/malicious', methods=['POST'])
+def train_malicious():
+    """Train model with malicious APK (for future supervised learning)"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not file.filename.lower().endswith('.apk'):
+            return jsonify({'error': 'File must be an APK'}), 400
+        
+        # Save uploaded file to malicious training directory
+        malicious_dir = os.path.join('mp_police_datasets', 'malicious')
+        os.makedirs(malicious_dir, exist_ok=True)
+        
+        file_path = os.path.join(malicious_dir, file.filename)
+        file.save(file_path)
+        
+        # Validate APK file
+        if not zipfile.is_zipfile(file_path):
+            os.remove(file_path)  # Clean up invalid file
+            return jsonify({'error': 'Invalid APK file format'}), 400
+        
+        # For now, just store the malicious APK for future supervised learning
+        return jsonify({
+            'status': 'success',
+            'message': f'Malicious APK {file.filename} added to malicious dataset',
+            'note': 'Currently using anomaly detection. Supervised learning will be implemented when sufficient malicious samples are collected.'
+        })
+            
+    except Exception as e:
+        return jsonify({'error': f'Training failed: {str(e)}'}), 500
+
+@app.route('/api/train/status', methods=['GET'])
+def training_status():
+    """Get training dataset status"""
+    try:
+        legitimate_dir = os.path.join('mp_police_datasets', 'legitimate', 'banking')
+        malicious_dir = os.path.join('mp_police_datasets', 'malicious')
+        
+        legitimate_count = 0
+        malicious_count = 0
+        
+        if os.path.exists(legitimate_dir):
+            legitimate_files = [f for f in os.listdir(legitimate_dir) if f.endswith('.apk')]
+            legitimate_count = len([f for f in legitimate_files if zipfile.is_zipfile(os.path.join(legitimate_dir, f))])
+        
+        if os.path.exists(malicious_dir):
+            malicious_files = [f for f in os.listdir(malicious_dir) if f.endswith('.apk')]
+            malicious_count = len([f for f in malicious_files if zipfile.is_zipfile(os.path.join(malicious_dir, f))])
+        
+        # Check if banking model exists
+        model_exists = os.path.exists('models/banking_anomaly_model.pkl')
+        
+        return jsonify({
+            'status': 'success',
+            'training_data': {
+                'legitimate_samples': legitimate_count,
+                'malicious_samples': malicious_count,
+                'total_samples': legitimate_count + malicious_count
+            },
+            'model_status': {
+                'banking_model_trained': model_exists,
+                'model_type': 'anomaly_detection' if legitimate_count >= 2 else 'insufficient_data',
+                'can_train': legitimate_count >= 2
+            },
+            'recommendations': {
+                'min_legitimate_samples': 3,
+                'min_malicious_samples': 10,
+                'current_approach': 'anomaly_detection',
+                'future_approach': 'supervised_learning' if malicious_count >= 10 else 'anomaly_detection'
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Status check failed: {str(e)}'}), 500
+
+@app.route('/api/retrain', methods=['POST'])
+def retrain_model():
+    """Manually retrain the banking detection model"""
+    try:
+        # Retrain the banking anomaly detection model
+        success = banking_trainer.train_anomaly_detection_model()
+        
+        if success:
+            banking_trainer.save_model()
+            # Reload the sentinel detector with new model
+            global sentinel_detector
+            sentinel_detector = SentinelBankingDetector()
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Banking detection model retrained successfully',
+                'timestamp': datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Model retraining failed - insufficient training data'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({'error': f'Retraining failed: {str(e)}'}), 500
+
 if __name__ == '__main__':
-    print("Starting Enhanced Fake Banking APK Detection Backend API...")
-    print("Features: Real APK Analysis, Certificate Validation, API Extraction")
-    print("API will be available at: http://localhost:5000")
+    print("[INFO] Starting Enhanced Banking APK Detection API...")
+    print("[INFO] Available endpoints:")
+    print("  - POST /api/analyze - Analyze APK file")
+    print("  - POST /api/train/legitimate - Add legitimate APK to training")
+    print("  - POST /api/train/malicious - Add malicious APK to training")
+    print("  - GET /api/train/status - Get training status")
+    print("  - POST /api/retrain - Manually retrain model")
+    print("  - GET /api/health - Health check")
+    print("[INFO] Server starting on http://0.0.0.0:5000")
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -3,8 +3,9 @@ Enhanced APK Analyzer using Androguard
 Phase 1: Comprehensive APK Metadata Extraction
 """
 
-from androguard.core.bytecodes import apk, dvm
-from androguard.core.analysis import analysis
+from androguard.core.apk import APK
+from androguard.core.dex import DEX
+from androguard.core.analysis.analysis import Analysis
 from androguard.misc import AnalyzeAPK
 import hashlib
 import json

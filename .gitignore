@@ -50,3 +50,6 @@ models/*.pkl
 # Node modules (if using npm)
 node_modules/
 package-lock.json
+*.apk
+uploads/*.apk
+*.apk
