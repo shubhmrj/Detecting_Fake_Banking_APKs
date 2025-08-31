@@ -80,7 +80,7 @@
       "http_urls": 1.140175425099138,
       "https_urls": 4.69041575982343,
       "suspicious_urls": 0.0,
-      "ip_addresses": 1.140175425099138,
+      "ip_addresses": 1.1401754250991378,
       "has_banking_keywords": 0.0,
       "suspicious_package_name": 0.0,
       "dangerous_permission_ratio": 0.03286335345030997,
@@ -143,7 +143,7 @@
       "suspicious_api_ratio": 0.0022
     }
   },
-  "training_timestamp": "2025-08-31T13:36:39.574218",
+  "training_timestamp": "2025-08-31T14:53:34.604658",
   "contamination": 0.1,
   "n_estimators": 100,
   "training_method": "synthetic_legitimate_features",
