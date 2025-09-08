@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            width: 400px;
+            min-height: 600px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .ml-badge {
+            display: inline-block;
+            background: #2ed573;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .main-content {
+            padding: 20px;
+        }
+        
+        .status-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .ml-status {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 12px;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-active { background-color: #2ed573; }
+        .status-scanning { background-color: #ffa502; }
+        .status-threat { background-color: #ff4757; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .scan-controls {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .scan-button {
+            padding: 15px;
+            background: linear-gradient(45deg, #2ed573, #26d065);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(46, 213, 115, 0.3);
+        }
+        
+        .scan-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(46, 213, 115, 0.4);
+        }
+        
+        .scan-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .demo-button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+        
+        .demo-button:hover {
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+        
+        .ml-analysis {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .analysis-header {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .analysis-icon {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+        
+        .risk-meter {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .risk-score {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .risk-low { color: #2ed573; }
+        .risk-medium { color: #ffa502; }
+        .risk-high { color: #ff4757; }
+        
+        .risk-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .risk-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+        
+        .threat-details {
+            background: rgba(255, 77, 87, 0.1);
+            border-left: 4px solid #ff4757;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .threat-details.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .threat-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .threat-icon {
+            margin-right: 8px;
+            color: #ff4757;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .stat-number {
+            font-size: 20px;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+        
+        .recent-scans {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .scan-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 12px;
+        }
+        
+        .scan-item:last-child {
+            border-bottom: none;
+        }
+        
+        .scan-name {
+            flex: 1;
+            margin-right: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .scan-risk {
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 10px;
+            opacity: 0.7;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #2ed573;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🛡️ APK Guardian</div>
+        <div class="subtitle">AI-Powered Banking Security</div>
+        <div class="ml-badge">ML DETECTION ENGINE</div>
+    </div>
+    
+    <div class="main-content">
+        <div class="status-section">
+            <div class="ml-status">
+                <div class="status-dot status-active" id="mlStatus"></div>
+                <span id="statusText">ML Model Ready</span>
+            </div>
+            
+            <div class="scan-controls">
+                <button class="scan-button" id="scanPageButton">
+                    🔍 Scan Current Page
+                </button>
+                <button class="scan-button demo-button" id="runDemoButton">
+                    🎬 Run ML Demo
+                </button>
+            </div>
+        </div>
+        
+        <div class="ml-analysis" id="analysisSection" style="display: none;">
+            <div class="analysis-header">
+                <span class="analysis-icon">🧠</span>
+                ML Analysis Results
+            </div>
+            
+            <div class="risk-meter">
+                <div class="risk-score" id="riskScore">Analyzing...</div>
+                <div class="risk-bar">
+                    <div class="risk-fill" id="riskFill" style="width: 0%;"></div>
+                </div>
+                <div style="text-align: center; font-size: 12px;" id="riskLabel">Risk Assessment</div>
+            </div>
+            
+            <div class="threat-details" id="threatDetails">
+                <div style="font-weight: bold; margin-bottom: 10px;">⚠️ Threats Detected:</div>
+                <div id="threatList"></div>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number" id="scannedCount">0</span>
+                <span class="stat-label">APKs Scanned</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="threatsBlocked">0</span>
+                <span class="stat-label">Threats Blocked</span>
+            </div>
+        </div>
+        
+        <div class="recent-scans">
+            <div style="font-weight: bold; margin-bottom: 10px; font-size: 14px;">Recent ML Scans:</div>
+            <div id="scanHistory"></div>
+        </div>
+        
+        <div class="loading" id="loadingSection">
+            <div class="spinner"></div>
+            <div>ML Model Processing...</div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        Powered by Advanced ML & AI Detection
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html>
