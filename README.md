@@ -89,8 +89,6 @@ User Uploads APK → Processing Animation → Results Display
 
 ### **What User Sees:**
 
-![Screenshot](assets/screenshot.png)
-
 
 #### **1. Upload Screen**
 ```html
