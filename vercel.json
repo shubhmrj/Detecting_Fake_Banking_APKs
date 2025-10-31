@@ -1,24 +1,9 @@
 {
   "version": 2,
-  "name": "mp-police-apk-detector",
   "builds": [
     {
       "src": "frontend/package.json",
       "use": "@vercel/next"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "frontend/$1"
-    }
-  ],
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "build": {
-    "env": {
-      "NEXT_PUBLIC_API_URL": "https://your-backend-name.onrender.com"
-    }
-  }
+  ]
 }
