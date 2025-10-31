@@ -14,12 +14,45 @@ from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import numpy as np
+# Import AI threat hunting blueprint
+try:
+    from ai_threat_hunting import ai_hunting_bp
+    AI_HUNTING_AVAILABLE = True
+    print("[OK] AI Threat Hunting module loaded")
+except ImportError as e:
+    print(f"[WARNING] AI Threat Hunting module not available: {e}")
+    AI_HUNTING_AVAILABLE = False
+    ai_hunting_bp = None
+
+# Import Advanced ML Tracker blueprint
+try:
+    from advanced_ml_tracker import ml_tracker_bp
+    ML_TRACKER_AVAILABLE = True
+    print("[OK] Advanced ML Tracker module loaded")
+except ImportError as e:
+    print(f"[WARNING] Advanced ML Tracker module not available: {e}")
+    ML_TRACKER_AVAILABLE = False
+    ml_tracker_bp = None
 
 # Add backend directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 app = Flask(__name__)
 CORS(app)
+
+# Register AI Threat Hunting Blueprint if available
+if AI_HUNTING_AVAILABLE and ai_hunting_bp:
+    app.register_blueprint(ai_hunting_bp)
+    print("[OK] AI Threat Hunting endpoints registered")
+else:
+    print("[WARNING] AI Threat Hunting endpoints not available")
+
+# Register Advanced ML Tracker Blueprint if available
+if ML_TRACKER_AVAILABLE and ml_tracker_bp:
+    app.register_blueprint(ml_tracker_bp)
+    print("[OK] Advanced ML Tracker endpoints registered")
+else:
+    print("[WARNING] Advanced ML Tracker endpoints not available")
 
 class ProductionBankingDetector:
     """Production Banking APK Detector with 18-feature model"""

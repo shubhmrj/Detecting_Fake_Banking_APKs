@@ -5,21 +5,19 @@ Provides continuous monitoring, threat detection, and automated response
 
 import os
 import sys
-import json
 import time
 import sqlite3
 import threading
 from pathlib import Path
-from datetime import datetime, timedelta
-from flask import Flask, jsonify, request, render_template_string
+from datetime import datetime
+from flask import Flask, jsonify
 from flask_cors import CORS
 import schedule
-import logging
 
 # Add backend directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from hackathon_repository_scanner import HackathonRepositoryScanner
+from backend.archive_development_files.hackathon_repository_scanner import HackathonRepositoryScanner
 
 class HackathonRealTimeMonitor:
     """
