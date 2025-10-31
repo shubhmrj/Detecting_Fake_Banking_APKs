@@ -400,13 +400,16 @@ def get_stats():
         }), 500
 
 if __name__ == '__main__':
+    # Get port from environment variable (for Render/Heroku) or default to 5000
+    port = int(os.environ.get('PORT', 5000))
+    
     print("=" * 60)
     print("PRODUCTION BANKING APK DETECTION API")
     print("=" * 60)
     print(f"[OK] API Server starting...")
     print(f"[OK] Banking model: 18-feature anomaly detection")
     print(f"[OK] Endpoints: /api/health, /api/analyze, /api/batch-scan, /api/stats")
-    print(f"[OK] Server will run on http://0.0.0.0:5000")
+    print(f"[OK] Server will run on http://0.0.0.0:{port}")
     print("=" * 60)
     
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False)
