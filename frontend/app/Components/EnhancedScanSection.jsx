@@ -260,18 +260,7 @@ const EnhancedScanSection = () => {
               <span>Scan APK File</span>
               {activeTab === 'file' && <div className="w-2 h-2 bg-green-400 rounded-full animate-ping"></div>}
             </button>
-            <button 
-              onClick={() => handleTabChange('url')}
-              className={`group flex items-center space-x-3 px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 hover-lift ${
-                activeTab === 'url' 
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-2xl neon-cyan' 
-                  : 'glass text-white hover:bg-white/10 border border-gray-600'
-              }`}
-            >
-              <Search className={`w-5 h-5 ${activeTab === 'url' ? 'animate-spin' : ''}`} />
-              <span>Scan URL</span>
-              {activeTab === 'url' && <div className="w-2 h-2 bg-green-400 rounded-full animate-ping"></div>}
-            </button>
+
           </div>
         </div>
 

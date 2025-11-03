@@ -18,7 +18,7 @@ const LiveStatsPanel = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
       
-      const response = await fetch('http://localhost:5000/api/stats', {
+      const response = await fetch('https://apk-detector-backend.onrender.com/api/health', {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -189,36 +189,7 @@ const LiveStatsPanel = () => {
         </div>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="text-center p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-          <div className="text-2xl font-bold text-cyan-400">
-            {getTotalScanned().toLocaleString()}
-          </div>
-          <div className="text-sm text-gray-400">Total Scanned</div>
-        </div>
-        
-        <div className="text-center p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-          <div className="text-2xl font-bold text-red-400">
-            {stats.classification_counts['SUSPICIOUS'] || 0}
-          </div>
-          <div className="text-sm text-gray-400">Threats Blocked</div>
-        </div>
-        
-        <div className="text-center p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-          <div className="text-2xl font-bold text-green-400">
-            {stats.classification_counts['LEGITIMATE'] || 0}
-          </div>
-          <div className="text-sm text-gray-400">Legitimate</div>
-        </div>
-        
-        <div className="text-center p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-          <div className="text-2xl font-bold text-yellow-400">
-            {getThreatRate()}%
-          </div>
-          <div className="text-sm text-gray-400">Threat Rate</div>
-        </div>
-      </div>
+
 
       {/* Recent Detections */}
       <div className="mb-6">
@@ -284,19 +255,6 @@ const LiveStatsPanel = () => {
         </div>
       </div>
 
-      {/* Last Updated */}
-      {lastUpdated && (
-        <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
-          <div className="flex items-center space-x-2">
-            <Clock className="w-3 h-3" />
-            <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span>Auto-refresh: 8s</span>
-            <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-green-400 animate-pulse' : 'bg-gray-500'}`}></div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
