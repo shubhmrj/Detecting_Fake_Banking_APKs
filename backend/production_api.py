@@ -50,13 +50,29 @@ class ProductionBankingDetector:
         try:
             model_path = self.models_dir / 'banking_anomaly_model.pkl'
             scaler_path = self.models_dir / 'banking_scaler.pkl'
+            metadata_path = self.models_dir / 'banking_model_metadata.json'
             
             if model_path.exists() and scaler_path.exists():
-                self.model = joblib.load(model_path)
-                self.scaler = joblib.load(scaler_path)
-                print(f"[OK] Banking anomaly model loaded successfully")
-                print(f"[OK] Model expects 18 features")
-                return True
+                try:
+                    self.model = joblib.load(model_path)
+                    self.scaler = joblib.load(scaler_path)
+                    print(f"[OK] Banking anomaly model loaded successfully")
+                    # Load metadata if available
+                    if metadata_path.exists():
+                        try:
+                            with open(metadata_path, 'r', encoding='utf-8') as f:
+                                metadata = json.load(f)
+                                mtype = metadata.get('model_type')
+                                print(f"[OK] Model metadata found: type={mtype}")
+                        except Exception:
+                            print("[WARNING] Could not read model metadata")
+                    else:
+                        print(f"[OK] Model expects 18 features")
+                    return True
+                except Exception as load_err:
+                    print(f"[ERROR] Failed to unpickle model: {load_err}")
+                    print("[HINT] Check scikit-learn version compatibility with the training environment.")
+                    return False
             else:
                 print(f"[ERROR] Model files not found")
                 return False
@@ -99,12 +115,13 @@ class ProductionBankingDetector:
             print(f"    Risk Score: {analysis_result.risk_score:.1f}")
             print(f"    Suspicious Perms: {len(analysis_result.suspicious_permissions)}")
             
-            return np.array(features).reshape(1, -1)
+            return np.array(features).reshape(1, -1), analysis_result
             
         except Exception as e:
             print(f"[ERROR] Feature extraction failed: {str(e)}")
             print("[WARNING] Falling back to basic file analysis")
-            return self._extract_basic_features(apk_path)
+            basic = self._extract_basic_features(apk_path)
+            return basic, None
     
     def _extract_basic_features(self, apk_path):
         """Fallback: Extract basic features when androguard fails"""
@@ -133,8 +150,8 @@ class ProductionBankingDetector:
                     'confidence': 0.0
                 }
             
-            # Extract features
-            features = self.extract_apk_features(apk_path)
+            # Extract features (and analysis result when available)
+            features, analysis_result = self.extract_apk_features(apk_path)
             if features is None:
                 return {
                     'error': 'Feature extraction failed',
@@ -155,7 +172,7 @@ class ProductionBankingDetector:
             
             classification = 'LEGITIMATE' if is_legitimate else 'SUSPICIOUS'
             
-            return {
+            result = {
                 'classification': classification,
                 'confidence': float(confidence),
                 'anomaly_score': float(anomaly_score),
@@ -163,6 +180,17 @@ class ProductionBankingDetector:
                 'model_version': 'banking_anomaly_v20250901',
                 'features_count': int(features.shape[1])
             }
+
+            # Add analysis metadata when available
+            if analysis_result is not None:
+                result.update({
+                    'package_name': getattr(analysis_result, 'package_name', None),
+                    'app_name': getattr(analysis_result, 'app_name', None),
+                    'risk_score': float(getattr(analysis_result, 'risk_score', 0.0)),
+                    'suspicious_permissions': getattr(analysis_result, 'suspicious_permissions', [])
+                })
+
+            return result
             
         except Exception as e:
             return {
@@ -270,19 +298,24 @@ def analyze_apk():
                 print(f"[WARNING] Could not delete temp file {temp_path}: {cleanup_error}")
                 # File will be cleaned by OS eventually
         
+        # Use real analysis metadata when provided by the classifier
+        package_name = result.get('package_name') if isinstance(result, dict) else None
+        app_name = result.get('app_name') if isinstance(result, dict) else None
+        risk_score = result.get('risk_score') if isinstance(result, dict) else None
+
         return jsonify({
             'status': 'success',
             'filename': file.filename,
             'analysis': {
-                'package_name': f"com.{file.filename.split('.')[0].lower()}",
-                'app_name': file.filename.split('.')[0],
+                'package_name': package_name or f"com.{file.filename.split('.')[0].lower()}",
+                'app_name': app_name or file.filename.split('.')[0],
                 'version_name': '1.0',
-                'is_suspicious': result.get('classification') == 'SUSPICIOUS',
+                'is_suspicious': result.get('classification') == 'SUSPICIOUS' if isinstance(result, dict) else False,
                 'security_analysis': {
-                    'risk_score': int(result.get('confidence', 0) * 100)
+                    'risk_score': int(risk_score) if risk_score is not None else int(result.get('confidence', 0) * 100)
                 },
-                'permission_count': 25,
-                'suspicious_permissions': [],
+                'permission_count': result.get('permission_count', None) if isinstance(result, dict) else None,
+                'suspicious_permissions': result.get('suspicious_permissions', []),
                 'critical_permissions': [],
                 'ml_prediction': {
                     'prediction': result.get('classification', 'UNKNOWN'),
