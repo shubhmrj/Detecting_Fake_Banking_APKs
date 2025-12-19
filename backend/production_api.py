@@ -1,6 +1,7 @@
 """
 Production-Ready Banking APK Detection API
 Compatible with newly trained 18-feature banking anomaly model
+Integrated with real APK analysis using androguard
 """
 
 import os
@@ -9,50 +10,21 @@ import json
 import joblib
 import sqlite3
 import hashlib
+import tempfile
 from pathlib import Path
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import numpy as np
-# Import AI threat hunting blueprint
-try:
-    from ai_threat_hunting import ai_hunting_bp
-    AI_HUNTING_AVAILABLE = True
-    print("[OK] AI Threat Hunting module loaded")
-except ImportError as e:
-    print(f"[WARNING] AI Threat Hunting module not available: {e}")
-    AI_HUNTING_AVAILABLE = False
-    ai_hunting_bp = None
-
-# Import Advanced ML Tracker blueprint
-try:
-    from advanced_ml_tracker import ml_tracker_bp
-    ML_TRACKER_AVAILABLE = True
-    print("[OK] Advanced ML Tracker module loaded")
-except ImportError as e:
-    print(f"[WARNING] Advanced ML Tracker module not available: {e}")
-    ML_TRACKER_AVAILABLE = False
-    ml_tracker_bp = None
 
 # Add backend directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+# Import APK Analyzer for real feature extraction
+from analysis.apk_analyzer import APKAnalyzer
+
 app = Flask(__name__)
 CORS(app)
-
-# Register AI Threat Hunting Blueprint if available
-if AI_HUNTING_AVAILABLE and ai_hunting_bp:
-    app.register_blueprint(ai_hunting_bp)
-    print("[OK] AI Threat Hunting endpoints registered")
-else:
-    print("[WARNING] AI Threat Hunting endpoints not available")
-
-# Register Advanced ML Tracker Blueprint if available
-if ML_TRACKER_AVAILABLE and ml_tracker_bp:
-    app.register_blueprint(ml_tracker_bp)
-    print("[OK] Advanced ML Tracker endpoints registered")
-else:
-    print("[WARNING] Advanced ML Tracker endpoints not available")
 
 class ProductionBankingDetector:
     """Production Banking APK Detector with 18-feature model"""
@@ -62,12 +34,16 @@ class ProductionBankingDetector:
         self.models_dir = self.base_dir / "models"
         self.db_path = self.base_dir / "mp_police_datasets" / "apk_database.db"
         
+        # Initialize APK Analyzer for real feature extraction
+        self.analyzer = APKAnalyzer()
+        
         # Load the newly trained banking anomaly model
         self.model = None
         self.scaler = None
         self.load_banking_model()
         
         print("[OK] Production Banking Detector initialized")
+        print("[OK] APK Analyzer integrated for real feature extraction")
     
     def load_banking_model(self):
         """Load the newly trained banking anomaly model (18 features)"""
@@ -90,66 +66,61 @@ class ProductionBankingDetector:
             return False
     
     def extract_apk_features(self, apk_path):
-        """Extract 18 features from APK file (synthetic method)"""
+        """Extract 18 features from APK file using real androguard analysis"""
         try:
-            # Get basic file info
-            file_size = os.path.getsize(apk_path) / (1024 * 1024)  # Size in MB
-            file_name = os.path.basename(apk_path).lower()
+            # Perform real APK analysis
+            analysis_result = self.analyzer.analyze(apk_path)
+            features_dict = analysis_result.features
             
-            # Banking app detection patterns
-            banking_keywords = ['bank', 'sbi', 'hdfc', 'icici', 'axis', 'kotak', 'bob', 'canara', 'ubi', 'central']
-            has_banking_keyword = any(keyword in file_name for keyword in banking_keywords)
+            # Extract 18 features in the exact order expected by the model
+            features = [
+                os.path.getsize(apk_path) / (1024 * 1024),                    # 1. File size in MB
+                features_dict.get('permission_count', 0),                      # 2. Permission count
+                int(features_dict.get('suspicious_permission_ratio', 0) * 100), # 3. Suspicious permission percentage
+                features_dict.get('activity_count', 0),                        # 4. Activity count
+                features_dict.get('service_count', 0),                         # 5. Service count
+                features_dict.get('receiver_count', 0),                        # 6. Receiver count
+                features_dict.get('certificate_count', 0),                     # 7. Certificate count
+                analysis_result.risk_score,                                    # 8. Risk score (0-100)
+                1 if 'android.permission.INTERNET' in analysis_result.permissions else 0,  # 9. Has internet
+                1 if features_dict.get('has_sms_permissions', False) else 0,   # 10. Has SMS permissions
+                1 if features_dict.get('has_location_permissions', False) else 0, # 11. Has location
+                1 if features_dict.get('has_camera_permissions', False) else 0,  # 12. Has camera
+                1 if 'android.permission.WRITE_EXTERNAL_STORAGE' in analysis_result.permissions else 0, # 13. Has storage
+                1 if features_dict.get('has_banking_keywords', False) else 0,   # 14. Has banking keywords
+                features_dict.get('suspicious_permission_ratio', 0),            # 15. Suspicious permission ratio
+                features_dict.get('activity_count', 0) + features_dict.get('service_count', 0) + features_dict.get('receiver_count', 0), # 16. Total components
+                features_dict.get('package_name_length', 0),                   # 17. Package name length
+                1 if features_dict.get('has_banking_keywords', False) else 0    # 18. Is banking-related
+            ]
             
-            # Generate realistic banking app features
-            if has_banking_keyword:
-                # Legitimate banking app patterns
-                features = [
-                    file_size,                          # File size in MB
-                    np.random.randint(24, 32),         # Permissions count
-                    np.random.randint(2, 4),           # Suspicious permissions
-                    np.random.randint(14, 20),         # Activities count
-                    np.random.randint(5, 8),           # Services count
-                    np.random.randint(3, 6),           # Receivers count
-                    1,                                  # Certificates count
-                    np.random.randint(24, 32),         # Risk score
-                    1,                                  # Has internet permission
-                    0,                                  # Has SMS permission
-                    1,                                  # Has location permission
-                    1,                                  # Has camera permission
-                    1,                                  # Has storage permission
-                    1,                                  # Is banking app
-                    np.random.uniform(0.08, 0.15),     # Suspicious ratio
-                    np.random.randint(18, 28),         # Total components
-                    len(file_name),                     # Package name length
-                    1                                   # Has banking keyword
-                ]
-            else:
-                # Non-banking app patterns (potentially suspicious)
-                features = [
-                    file_size,                          # File size in MB
-                    np.random.randint(15, 45),         # Permissions count
-                    np.random.randint(5, 12),          # Suspicious permissions
-                    np.random.randint(8, 25),          # Activities count
-                    np.random.randint(2, 12),          # Services count
-                    np.random.randint(1, 8),           # Receivers count
-                    np.random.randint(0, 3),           # Certificates count
-                    np.random.randint(35, 65),         # Risk score
-                    1,                                  # Has internet permission
-                    np.random.randint(0, 2),           # Has SMS permission
-                    np.random.randint(0, 2),           # Has location permission
-                    np.random.randint(0, 2),           # Has camera permission
-                    1,                                  # Has storage permission
-                    0,                                  # Is banking app
-                    np.random.uniform(0.20, 0.45),     # Suspicious ratio
-                    np.random.randint(10, 35),         # Total components
-                    len(file_name),                     # Package name length
-                    0                                   # Has banking keyword
-                ]
+            print(f"[OK] Real APK analysis complete: {analysis_result.package_name}")
+            print(f"    Permissions: {features_dict.get('permission_count', 0)}")
+            print(f"    Risk Score: {analysis_result.risk_score:.1f}")
+            print(f"    Suspicious Perms: {len(analysis_result.suspicious_permissions)}")
             
             return np.array(features).reshape(1, -1)
             
         except Exception as e:
             print(f"[ERROR] Feature extraction failed: {str(e)}")
+            print("[WARNING] Falling back to basic file analysis")
+            return self._extract_basic_features(apk_path)
+    
+    def _extract_basic_features(self, apk_path):
+        """Fallback: Extract basic features when androguard fails"""
+        try:
+            file_size = os.path.getsize(apk_path) / (1024 * 1024)
+            file_name = os.path.basename(apk_path).lower()
+            
+            # Basic feature extraction without androguard
+            features = [
+                file_size, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, len(file_name), 0
+            ]
+            
+            return np.array(features).reshape(1, -1)
+            
+        except Exception as e:
+            print(f"[ERROR] Basic feature extraction also failed: {str(e)}")
             return None
     
     def classify_apk(self, apk_path):
@@ -273,20 +244,31 @@ def analyze_apk():
         if not file.filename.endswith('.apk'):
             return jsonify({'error': 'File must be an APK'}), 400
         
-        # Save uploaded file temporarily (Windows compatible)
-        import tempfile
+        # Save uploaded file temporarily with safer handling
         temp_dir = tempfile.gettempdir()
-        temp_path = os.path.join(temp_dir, file.filename)
-        file.save(temp_path)
+        # Use a unique temp filename to avoid conflicts
+        import uuid
+        safe_filename = f"apk_{uuid.uuid4().hex}_{file.filename}"
+        temp_path = os.path.join(temp_dir, safe_filename)
         
-        # Classify APK
-        result = detector.classify_apk(temp_path)
-        
-        # Log detection
-        detector.log_detection(temp_path, result)
-        
-        # Clean up
-        os.remove(temp_path)
+        try:
+            file.save(temp_path)
+            
+            # Classify APK
+            result = detector.classify_apk(temp_path)
+            
+            # Log detection
+            detector.log_detection(temp_path, result)
+            
+        finally:
+            # Safe cleanup - handle file lock errors
+            try:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                    print(f"[OK] Cleaned up temp file: {temp_path}")
+            except Exception as cleanup_error:
+                print(f"[WARNING] Could not delete temp file {temp_path}: {cleanup_error}")
+                # File will be cleaned by OS eventually
         
         return jsonify({
             'status': 'success',
