@@ -1,16 +1,5 @@
 # Backend Architecture - Complete Analysis & Cleanup Guide
 
-## 🔴 ISSUE: scikit-learn Version Mismatch
-
-**Problem:** Models trained with scikit-learn 1.3.0 but running with 1.7.2
-```
-InconsistentVersionWarning: Trying to unpickle estimator IsolationForest from version 1.3.0 when using version 1.7.2
-```
-
-**Solution:** Fix requirements.txt to use specific version
-```bash
-# OLD: scikit-learn>=1.0.0  (allows 1.7.2)
-# NEW: scikit-learn==1.3.0  (exact version)
 ```
 
 This ensures models work without warnings.
