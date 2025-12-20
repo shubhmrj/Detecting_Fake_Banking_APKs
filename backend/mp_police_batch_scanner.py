@@ -32,10 +32,8 @@ class MPPoliceBatchScanner:
         
         # Find all APK files
         apk_files = list(directory.glob("**/*.apk"))
-        print(f"[INFO] Found {len(apk_files)} APK files")
         
         if len(apk_files) == 0:
-            print("[INFO] No APK files found in directory")
             return True
         
         # Scan each APK
@@ -44,8 +42,6 @@ class MPPoliceBatchScanner:
         error_count = 0
         
         for i, apk_file in enumerate(apk_files, 1):
-            print(f"\n[{i}/{len(apk_files)}] Scanning: {apk_file.name}")
-            
             try:
                 # Prepare file for upload
                 with open(apk_file, 'rb') as f:
@@ -72,7 +68,7 @@ class MPPoliceBatchScanner:
                             error_count += 1
                             status_icon = "[UNKNOWN]"
                         
-                        print(f"  {status_icon} {classification} (confidence: {confidence:.3f})")
+                        # result stored (silent mode)
                         
                         # Store result
                         scan_result = {
@@ -91,7 +87,6 @@ class MPPoliceBatchScanner:
                         self.results.append(scan_result)
                         
                     else:
-                        print(f"  [ERROR] API Error: {response.status_code}")
                         error_count += 1
                         self.results.append({
                             'filename': apk_file.name,
@@ -103,17 +98,15 @@ class MPPoliceBatchScanner:
                         })
                         
             except Exception as e:
-                print(f"  [ERROR] Scan Error: {str(e)}")
-                error_count += 1
-                self.results.append({
-                    'filename': apk_file.name,
-                    'path': str(apk_file),
-                    'classification': 'ERROR',
-                    'error': str(e),
-                    'timestamp': datetime.now().isoformat(),
-                    'status': 'error'
-                })
-        
+                    error_count += 1
+                    self.results.append({
+                        'filename': apk_file.name,
+                        'path': str(apk_file),
+                        'classification': 'ERROR',
+                        'error': str(e),
+                        'timestamp': datetime.now().isoformat(),
+                        'status': 'error'
+                    })
         # # Print summary
         # print("\n" + "=" * 50)
         # print("SCAN SUMMARY")
@@ -132,8 +125,7 @@ class MPPoliceBatchScanner:
         
         # Save results to file
         if output_file:
-            self.save_results(output_file)
-        
+                self.save_results(output_file)
         return True
     
     def save_results(self, output_file):
@@ -153,7 +145,6 @@ class MPPoliceBatchScanner:
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(report, f, indent=2, ensure_ascii=False)
             
-            print(f"\n[OK] Results saved to: {output_file}")
             
         except Exception as e:
             print(f"[ERROR] Failed to save results: {str(e)}")
@@ -162,9 +153,6 @@ class MPPoliceBatchScanner:
         """Quick scan of the banking APKs dataset"""
         banking_dir = Path(__file__).parent / "mp_police_datasets" / "legitimate" / "banking"
         output_file = Path(__file__).parent / "mp_police_scan_results.json"
-        
-        print("MP POLICE - BANKING APK VALIDATION SCAN")
-        print("=" * 60)
         
         return self.scan_directory(str(banking_dir), str(output_file))
 
