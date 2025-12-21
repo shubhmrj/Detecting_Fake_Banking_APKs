@@ -18,7 +18,7 @@ const AdvancedThreatIntelligence = () => {
   // Fetch attribution clusters
   const fetchAttributionClusters = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/ml-tracker/attribution-clusters');
+      const response = await fetch('https://apk-detector-backend.onrender.com/api/ml-tracker/attribution-clusters');
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -48,7 +48,7 @@ const AdvancedThreatIntelligence = () => {
   // Fetch network graph
   const fetchNetworkGraph = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/ml-tracker/network-graph');
+      const response = await fetch('https://apk-detector-backend.onrender.com/api/ml-tracker/network-graph');
       if (response.ok) {
         const data = await response.json();
         if (data.success) {

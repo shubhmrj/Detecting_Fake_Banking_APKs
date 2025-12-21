@@ -7,6 +7,7 @@ Integrated with real APK analysis using androguard
 import os
 import sys
 import json
+import logging
 import joblib
 import sqlite3
 import hashlib
@@ -23,21 +24,28 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 
 def startup_checks(preferred_sklearn_version: str = "1.3.0") -> None:
-    """Run light runtime checks and print guidance for known compatibility issues."""
+    """Light, non-verbose runtime checks. Stores compatibility notes for operators.
+
+    This function does not print to stdout to keep production output clean.
+    """
+    messages = []
     try:
         import sklearn
         installed = getattr(sklearn, "__version__", "unknown")
         if installed != preferred_sklearn_version:
-            print(f"[WARN] scikit-learn version mismatch: installed={installed}, recommended={preferred_sklearn_version}")
-            print("[ADVICE] To get the training-matching version, consider:")
-            print("  Conda (recommended):")
-            print(f"    conda install -c conda-forge scikit-learn={preferred_sklearn_version}")
-            print("  Or create a fresh conda env:")
-            print(f"    conda create -n skenv python=3.10 -y && conda activate skenv && conda install -c conda-forge scikit-learn={preferred_sklearn_version} joblib numpy -y")
-            print("  Pip (if wheel available):")
-            print(f"    pip install 'scikit-learn=={preferred_sklearn_version}' --only-binary=:all:")
+            messages.append(f"scikit-learn version mismatch: installed={installed}, recommended={preferred_sklearn_version}")
+            messages.append("Conda (recommended): conda install -c conda-forge scikit-learn=%s" % preferred_sklearn_version)
+            messages.append("Or create env: conda create -n skenv python=3.10 -y && conda activate skenv && conda install -c conda-forge scikit-learn=%s joblib numpy -y" % preferred_sklearn_version)
+            messages.append("Pip (if wheel available): pip install 'scikit-learn==%s' --only-binary=:all:" % preferred_sklearn_version)
     except ImportError:
-        print("[WARN] scikit-learn not installed. Install scikit-learn to run the ML model.")
+        messages.append("scikit-learn not installed. Install scikit-learn to run the ML model.")
+
+    # Save notes to a module-level var for operators / logging
+    global COMPATIBILITY_NOTE
+    COMPATIBILITY_NOTE = "\n".join(messages)
+
+# configure a module logger (no default stdout noise)
+logger = logging.getLogger("detecting_fake_banking")
 
 
 # APK Static Analysis Module (merged here for single-file deployment)
@@ -187,7 +195,7 @@ class APKAnalyzer:
                 }
                 certificates.append(cert_info)
         except Exception as e:
-            print(f"Certificate analysis error: {e}")
+            logger.debug("Certificate analysis error: %s", e)
 
         return certificates
 
@@ -202,7 +210,7 @@ class APKAnalyzer:
                 hashes['sha1'] = hashlib.sha1(content).hexdigest()
                 hashes['sha256'] = hashlib.sha256(content).hexdigest()
         except Exception as e:
-            print(f"Hash calculation error: {e}")
+            logger.debug("Hash calculation error: %s", e)
 
         return hashes
 
@@ -229,7 +237,7 @@ class APKAnalyzer:
                 }
                 return config
         except Exception as e:
-            print(f"Network security analysis error: {e}")
+            logger.debug("Network security analysis error: %s", e)
 
         return None
 
@@ -395,15 +403,15 @@ class ProductionBankingDetector:
                             pass
                     return True
                 except Exception as load_err:
-                    print(f"[ERROR] Failed to unpickle model: {load_err}")
-                    print("[HINT] Check scikit-learn version compatibility with the training environment.")
+                    logger.error("Failed to unpickle model: %s", load_err)
+                    logger.error("Hint: check scikit-learn version compatibility with the training environment.")
                     return False
             else:
-                print(f"[ERROR] Model files not found")
+                logger.error("Model files not found: %s or %s", model_path, scaler_path)
                 return False
                 
         except Exception as e:
-            print(f"[ERROR] Failed to load banking model: {str(e)}")
+            logger.error("Failed to load banking model: %s", e)
             return False
     
     def extract_apk_features(self, apk_path):
@@ -439,8 +447,8 @@ class ProductionBankingDetector:
             return np.array(features).reshape(1, -1), analysis_result
             
         except Exception as e:
-            print(f"[ERROR] Feature extraction failed: {str(e)}")
-            print("[WARNING] Falling back to basic file analysis")
+            logger.error("Feature extraction failed for %s: %s", apk_path, e)
+            logger.debug("Falling back to basic feature extraction for %s", apk_path)
             basic = self._extract_basic_features(apk_path)
             return basic, None
     
@@ -458,7 +466,7 @@ class ProductionBankingDetector:
             return np.array(features).reshape(1, -1)
             
         except Exception as e:
-            print(f"[ERROR] Basic feature extraction also failed: {str(e)}")
+            logger.error("Basic feature extraction failed for %s: %s", apk_path, e)
             return None
     
     def classify_apk(self, apk_path):
@@ -563,7 +571,7 @@ class ProductionBankingDetector:
             return True
             
         except Exception as e:
-            print(f"[ERROR] Failed to log detection: {str(e)}")
+            logger.error("Failed to log detection to DB: %s", e)
             return False
 
 # Initialize detector
@@ -616,7 +624,7 @@ def analyze_apk():
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
             except Exception as cleanup_error:
-                print(f"[WARNING] Could not delete temp file {temp_path}: {cleanup_error}")
+                logger.warning("Could not delete temp file %s: %s", temp_path, cleanup_error)
                 # File will be cleaned by OS eventually
         
         # Use real analysis metadata when provided by the classifier

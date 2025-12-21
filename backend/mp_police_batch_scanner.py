@@ -18,12 +18,7 @@ class MPPoliceBatchScanner:
         self.results = []
         
     def scan_directory(self, directory_path, output_file=None):
-        # """Scan all APKs in a directory"""
-        # print(f"MP POLICE BATCH APK SCANNER")
-        # print("=" * 50)
-        # print(f"Scanning directory: {directory_path}")
-        # print(f"API endpoint: {self.api_url}")
-        # print("=" * 50)
+        """Scan all APKs in a directory"""
         
         directory = Path(directory_path)
         if not directory.exists():
@@ -117,11 +112,10 @@ class MPPoliceBatchScanner:
         # print(f"[ERROR] Errors: {error_count}")
         
         if suspicious_count > 0:
-            # print(f"\n[ALERT] WARNING: {suspicious_count} suspicious APKs detected!")
-            # print("Suspicious APKs:")
             for result in self.results:
                 if result.get('classification') == 'SUSPICIOUS':
-                    print(f"  - {result['filename']} (confidence: {result.get('confidence', 0):.3f})")
+                    # keep results stored; no console output
+                    pass
         
         # Save results to file
         if output_file:

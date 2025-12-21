@@ -80,7 +80,7 @@ const EnhancedScanSection = () => {
       // Start progress simulation while making real API call
       const analysisPromise = simulateAnalysis();
       
-      const response = await fetch('http://localhost:5000/api/analyze', {
+      const response = await fetch('https://apk-detector-backend.onrender.com/api/analyze', {
         method: 'POST',
         body: formData,
         headers: {
@@ -111,7 +111,7 @@ const EnhancedScanSection = () => {
       console.error('API Error:', error);
       setAnalysisResult({ 
         status: 'error', 
-        error: `Backend API Error: ${error.message}. Please ensure the production API server is running on http://localhost:5000`,
+        error: `Backend API Error: ${error.message}. Please check backend connectivity or server status.`,
         filename: file.name,
         realAnalysis: true,
         suggestion: 'Try running: python backend/production_api.py'
@@ -134,7 +134,7 @@ const EnhancedScanSection = () => {
         
         // For URL scanning, we'll simulate downloading and analyzing
         // In a real implementation, this would download the APK from the URL
-        const response = await fetch('http://localhost:5000/api/batch-scan', {
+        const response = await fetch('https://apk-detector-backend.onrender.com/api/batch-scan', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

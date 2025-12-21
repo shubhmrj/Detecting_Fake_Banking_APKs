@@ -62,7 +62,7 @@ const ThreatVisualization = () => {
   // Fetch threat data from backend API
   const fetchThreatData = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/ai-hunting/threat-feed');
+      const response = await fetch('https://apk-detector-backend.onrender.com/api/ai-hunting/threat-feed');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
