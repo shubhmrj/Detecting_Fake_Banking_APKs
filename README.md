@@ -104,7 +104,7 @@ Binary File  Permissions,         [0.2, 0.8, 0.1, ...]
    ├─ APK hash
    ├─ Classification
    ├─ Confidence score
-   └─ Anomaly score
+   └─ Anomaly scores
    ↓
 8. RESPONSE TO FRONTEND
    └─ JSON result with prediction
