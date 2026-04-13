@@ -1,0 +1,45 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Installing dependencies..."
+      - pip install --upgrade pip setuptools wheel
+      - pip install -r backend/requirements.txt --cache-dir ~/.cache/pip
+      - cd frontend && npm install && cd ..
+      - echo "Dependency installation complete"
+      
+  build:
+    commands:
+      - echo "Building frontend..."
+      - cd frontend && npm run build && cd ..
+      - echo "Frontend build complete"
+      - echo "Backend is ready for deployment"
+      
+  post_build:
+    commands:
+      - echo "Build complete"
+      - echo "Preparing deployment artifacts..."
+
+artifacts:
+  files:
+    - '**/*'
+    - '.ebextensions/**/*'
+    - 'backend/**/*'
+    - 'frontend/.next/**/*'
+    - 'frontend/public/**/*'
+    - 'frontend/node_modules/**/*'
+  name: BankingAPKDetector-build
+  
+cache:
+  paths:
+    - '/root/.cache/pip/**/*'
+    - 'frontend/node_modules/**/*'
+
+env:
+  variables:
+    NODE_ENV: production
+    PYTHONUNBUFFERED: true
+    
+log-group-name: /aws/codebuild/banking-apk-detector
+log-stream-name: build-log

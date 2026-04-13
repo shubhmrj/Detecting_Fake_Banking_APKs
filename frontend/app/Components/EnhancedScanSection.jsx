@@ -107,6 +107,7 @@ const EnhancedScanSection = () => {
           realAnalysis: true
         });
       }
+      
     } catch (error) {
       console.error('API Error:', error);
       setAnalysisResult({ 
