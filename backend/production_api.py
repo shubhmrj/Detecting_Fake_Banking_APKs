@@ -101,6 +101,7 @@ class APKAnalyzer:
         'android.permission.BIND_DEVICE_ADMIN': 'high'
     }
 
+
     # Legitimate banking app indicators
     BANKING_KEYWORDS = [
         'bank', 'banking', 'finance', 'payment', 'wallet', 'money',
