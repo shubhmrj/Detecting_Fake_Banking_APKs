@@ -1,8 +1,4 @@
-"""
-Production-Ready Banking APK Detection API
-Compatible with newly trained 18-feature banking anomaly model
-Integrated with real APK analysis using androguard
-"""
+
 
 import os
 import sys
