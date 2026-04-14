@@ -23,20 +23,13 @@ artifacts:
     - '**/*'
     - '.ebextensions/**/*'
     - 'backend/**/*'
-    - 'frontend/.next/**/*'
-    - 'frontend/public/**/*'
-    - 'frontend/node_modules/**/*'
   name: BankingAPKDetector-build
   
 cache:
   paths:
     - '/root/.cache/pip/**/*'
-    - 'frontend/node_modules/**/*'
 
 env:
   variables:
     NODE_ENV: production
     PYTHONUNBUFFERED: true
-    
-log-group-name: /aws/codebuild/banking-apk-detector
-log-stream-name: build-log
