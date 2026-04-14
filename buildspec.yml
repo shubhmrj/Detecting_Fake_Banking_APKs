@@ -3,23 +3,20 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo "Installing dependencies..."
+      - echo "Installing backend dependencies..."
       - pip install --upgrade pip setuptools wheel
       - pip install -r backend/requirements.txt --cache-dir ~/.cache/pip
-      - cd frontend && npm install && cd ..
-      - echo "Dependency installation complete"
+      - echo "Backend dependencies installed"
       
   build:
     commands:
-      - echo "Building frontend..."
-      - cd frontend && npm run build && cd ..
-      - echo "Frontend build complete"
       - echo "Backend is ready for deployment"
+      - echo "Frontend will be built on Elastic Beanstalk"
+      - echo "Build phase complete"
       
   post_build:
     commands:
-      - echo "Build complete"
-      - echo "Preparing deployment artifacts..."
+      - echo "Artifact preparation complete"
 
 artifacts:
   files:
